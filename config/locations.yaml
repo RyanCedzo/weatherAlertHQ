@@ -1,0 +1,9 @@
+# config/locations.yaml
+# Stage 1: single location. Fill/adjust before running ingest.
+locations:
+  - location_id: home
+    name: Erie PA (near Kahkwa / Fairview area)
+    latitude: 42.0497149
+    longitude: -80.2110395
+    timezone: America/New_York
+    active: true
