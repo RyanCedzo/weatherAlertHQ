@@ -1,5 +1,11 @@
 # config/locations.yaml
-# Stage 1: single location. Fill/adjust before running ingest.
+#
+# Stage 1: exactly ONE location, loaded by src/config.py.
+#
+# IMPORTANT: latitude, longitude, and timezone below are placeholder/example
+# values. Confirm or replace them with your actual home coordinates and IANA
+# timezone name (e.g. "America/New_York") before running src/main.py — the
+# sunset time/azimuth and API results will be wrong for the wrong location.
 locations:
   - location_id: home
     name: Erie PA (near Kahkwa / Fairview area)
