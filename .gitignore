@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Saved API fixtures are generated locally via --save-fixtures; not committed.
+fixtures/*.json
