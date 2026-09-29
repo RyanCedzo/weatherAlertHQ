@@ -1,8 +1,8 @@
-"""Stage 1 entry point.
+"""Stage 1 + Stage 2 entry point.
 
 Load one location -> fetch Open-Meteo weather + air quality -> compute
 sunset time/azimuth -> join on timestamp -> print sunset-window rows and
-aggregates.
+aggregates -> score the window with heuristic_v1 and print a score card.
 
 Usage:
     python -m src.main
@@ -33,6 +33,7 @@ from src.openmeteo import (  # noqa: E402
     fetch_air_quality,
     fetch_weather,
 )
+from src.scoring.heuristic_v1 import heuristic_v1  # noqa: E402
 from src.solar import compute_sunset  # noqa: E402
 
 
@@ -95,10 +96,20 @@ def main(argv=None) -> int:
     for row in window_rows:
         print(f"  {json.dumps(row, default=str)}")
 
-    aggregates = aggregate_window(window_rows)
+    aggregates = aggregate_window(window_rows, sunset_local=sunset.sunset_local)
     print()
     print("Window aggregates:")
     print(json.dumps(aggregates, indent=2, default=str))
+
+    card = heuristic_v1(aggregates)
+    print()
+    print("=== Today's sunset score card ===")
+    print(f"  Location: {location.name}")
+    print(f"  Sunset (local): {sunset.sunset_local.isoformat()}")
+    print(f"  Score: {card['score']}/100 ({card['grade']}) [{card['score_version']}]")
+    print("  Drivers:")
+    for driver in card["drivers"]:
+        print(f"    - {driver}")
 
     return 0
 

@@ -8,7 +8,7 @@ to prove the data and window logic, not build a dataframe framework.
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 # Sunset window: [sunset - 2h, sunset + 1h]
 WINDOW_BEFORE = timedelta(hours=2)
@@ -67,9 +67,40 @@ def filter_sunset_window(
     return windowed
 
 
-def aggregate_window(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+def pre_sunset_low_cloud_mean(
+    rows: List[Dict[str, Any]],
+    sunset_local: datetime,
+    hours_before: float = 2.0,
+) -> Optional[float]:
+    """Crude horizon-block proxy (PROJECT_PLAN.md D9): mean cloud_cover_low
+    in the hours immediately before sunset.
+
+    Open-Meteo has no directional/horizon cloud data, so this only uses
+    "low cloud right before sunset" as a stand-in for "is the sun likely to
+    duck behind a bank of cloud before it reaches the horizon". Documented
+    as a proxy, not real horizon geometry.
+    """
+    sunset_naive = sunset_local.replace(tzinfo=None)
+    cutoff_start = sunset_naive - timedelta(hours=hours_before)
+
+    values = [
+        row["cloud_cover_low"]
+        for row in rows
+        if row.get("cloud_cover_low") is not None
+        and cutoff_start <= datetime.fromisoformat(row["time"]) <= sunset_naive
+    ]
+    return sum(values) / len(values) if values else None
+
+
+def aggregate_window(
+    rows: List[Dict[str, Any]],
+    sunset_local: Optional[datetime] = None,
+) -> Dict[str, Any]:
     """Simple aggregates over the sunset window: means for cloud/humidity/
     visibility/AOD, sum for precipitation, plus the raw weather-code list.
+
+    If sunset_local is given, also includes cloud_cover_low_presunset_mean
+    (the crude horizon-block proxy consumed by Stage 2's heuristic_v1).
     """
     if not rows:
         return {"hour_count": 0}
@@ -82,7 +113,7 @@ def aggregate_window(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
         values = [row[field] for row in rows if row.get(field) is not None]
         return sum(values)
 
-    return {
+    aggregates = {
         "hour_count": len(rows),
         "cloud_cover_mean": mean("cloud_cover"),
         "cloud_cover_low_mean": mean("cloud_cover_low"),
@@ -95,3 +126,8 @@ def aggregate_window(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
         "precipitation_sum": total("precipitation"),
         "weather_codes": [row.get("weather_code") for row in rows],
     }
+
+    if sunset_local is not None:
+        aggregates["cloud_cover_low_presunset_mean"] = pre_sunset_low_cloud_mean(rows, sunset_local)
+
+    return aggregates
