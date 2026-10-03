@@ -2,8 +2,8 @@
 
 Initial testing/work with weather-related data. See `PROJECT_PLAN.md` for the
 full roadmap; this repo currently implements **Stage 1 — Local data
-prototype** and **Stage 2 — Local heuristic** only (no Databricks/Spark/
-Delta/UI/ML yet).
+prototype**, **Stage 2 — Local heuristic**, and **Stage 3 — Databricks
+bronze ingest** (no silver/gold/Spark transforms/Jobs/UI/ML yet).
 
 ## Stage 1 — what's here
 
@@ -90,3 +90,16 @@ subscore is bad pulls the total score down, as expected). Explicitly not
 built in Stage 2: ML/MLflow, Databricks/Spark/Delta, score persistence,
 notifications, multi-location, UI. See `PROJECT_PLAN.md` Stage 2 for the
 full scope lock.
+
+## Stage 3 — Databricks bronze ingest
+
+`stage3_bronze/` holds a notebook + plain-Python module that land raw
+Open-Meteo weather + AQ JSON into one Delta table,
+`env_events_v1.bronze_api_response`, for the same single location from
+`config/locations.yaml`. HTTP ingest stays plain Python (reusing Stage 1's
+URL/field constants); only the Delta schema/table setup and the append
+write use Spark. See `stage3_bronze/README.md` for exactly how to run it
+once in a Databricks workspace and when to stop the cluster, and
+`PROJECT_PLAN.md` Stage 3 for the full scope lock. This repo cannot run or
+verify the actual Delta write — that only happens once you run the
+notebook in your own workspace.
